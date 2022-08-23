@@ -68,30 +68,28 @@ Base64ErrorCode Base64Decoder::Decode(char const *text, size_t len,
   raw.reserve(size_t((len - new_line_count) * (3.0/4)));
 
   char ch1, ch2, ch3, ch4;
-  // Handling the last four ascii specially
+
+  // Remove the last newline character
   if (newline) len--;
-  const size_t end = len - 4;
+  // Handling the last four ascii specially
+  const size_t end = text[len-1] == '=' ? len - 4 : len;
 
-#define HANDLE_FOUR_BASE64 do { \
-  ch1 = GetBase64(text[i++]); \
-  ch2 = GetBase64(text[i++]); \
-  ch3 = GetBase64(text[i++]); \
-  ch4 = GetBase64(text[i++]); \
-  if (ch1 == -1 || ch2 == -1 || ch3 == -1 || ch4 == -1) { \
-    fprintf(stderr, "i = %zu, ch1 = %c, ch2 = %c, ch3 = %c, ch4 = %c\n", i, text[i-4], text[i-3], text[i-2], text[i-1]); \
-    return BE_INVALID_ENCODING; \
-  } \
-  raw.push_back(GetBase256_1(ch1, ch2)); \
-  raw.push_back(GetBase256_2(ch2, ch3)); \
-  raw.push_back(GetBase256_3(ch3, ch4)); \
-  } while (0)
-
-  size_t i = 0;
-  for (; i < end;) {
+  for (size_t i = 0; i < end;) {
     // Omit the newline character
-    if (newline && text[i] == '\n')
-      ++i;
-    HANDLE_FOUR_BASE64;
+    ch1 = GetBase64(text[i++]);
+    ch2 = GetBase64(text[i++]);
+    ch3 = GetBase64(text[i++]);
+    ch4 = GetBase64(text[i++]);
+    if (ch1 == -1 || ch2 == -1 || ch3 == -1 || ch4 == -1) {
+      fprintf(stderr, "i = %zu, ch1 = %c, ch2 = %c, ch3 = %c, ch4 = %c\n", i, text[i-4], text[i-3], text[i-2], text[i-1]);
+      return BE_INVALID_ENCODING;
+    }
+  
+    raw.push_back(GetBase256_1(ch1, ch2));
+    raw.push_back(GetBase256_2(ch2, ch3));
+    raw.push_back(GetBase256_3(ch3, ch4));
+
+    if (newline && text[i] == '\n') ++i;
   }
   
   if (text[len-1] == '=') {
@@ -107,8 +105,6 @@ Base64ErrorCode Base64Decoder::Decode(char const *text, size_t len,
       raw.push_back(GetBase256_1(ch1, ch2));
       raw.push_back(GetBase256_2(ch2, ch3));
     }
-  } else {
-    HANDLE_FOUR_BASE64;
   }
 
   return BE_OK;
