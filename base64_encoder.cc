@@ -2,6 +2,8 @@
 
 #include <assert.h>
 
+#include "file_util.h"
+
 using namespace uc;
 
 /* Construct a map: {base64 index -> printable ascii code} */
@@ -109,6 +111,7 @@ static constexpr size_t BUFSIZE = 1024 * 3;
 void Base64Encoder::EncodeFromFile(char const *filename, std::string &text, bool newline) {
   FILE *fp = fopen(filename, "r");
   if (!fp) return;
+  DeferFclose df(fp);
   
   char buf[BUFSIZE];
   size_t count = 0;
@@ -125,5 +128,4 @@ void Base64Encoder::EncodeFromFile(char const *filename, std::string &text, bool
     assert(count == sizeof buf);
     Encode(buf, count, text, newline);
   }
-  fclose(fp);
 }

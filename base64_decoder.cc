@@ -3,6 +3,8 @@
 #include <assert.h>
 #include <unordered_map>
 
+#include "file_util.h"
+
 using namespace uc;
 
 #define DECODER_DEBUG 0
@@ -115,6 +117,10 @@ static constexpr size_t BUFSIZE = 4096;
 Base64ErrorCode Base64Decoder::DecodeFromFile(char const *filename, 
     std::vector<unsigned char> &raw, bool newline) {
   FILE *fp = fopen(filename, "r");
+  if (!fp) return BE_FILE_ERROR;
+  // Avoid forgetting call fclose() when error occurred
+  DeferFclose df(fp);
+
   char buf[BUFSIZE];
   size_t count = 0;
   Base64ErrorCode error_code;
@@ -135,6 +141,5 @@ Base64ErrorCode Base64Decoder::DecodeFromFile(char const *filename,
     if (error_code != BE_OK)
       return error_code;
   }
-  fclose(fp);
   return BE_OK;
 }
